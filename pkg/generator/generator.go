@@ -50,16 +50,18 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to render notice output: %w", err)
 	}
 
-	if err := writeText(filepath.Join(cfg.OutDir, "THIRD_PARTY_LICENSES.html"), htmlOut); err != nil {
+	tpnDir := filepath.Join(cfg.OutDir, "THIRD_PARTY_LICENSES.html")
+	nDir := filepath.Join(cfg.OutDir, "NOTICE.md")
+	if err := writeText(tpnDir, htmlOut); err != nil {
 		return fmt.Errorf("failed to write HTML output: %w", err)
 	}
-	if err := writeText(filepath.Join(cfg.OutDir, "NOTICE.md"), noticeOut); err != nil {
+	if err := writeText(nDir, noticeOut); err != nil {
 		return fmt.Errorf("failed to write notice output: %w", err)
 	}
 
 	fmt.Printf("Wrote:\n- %s\n- %s\n- %s/\n",
-		filepath.Join(cfg.OutDir, "THIRD_PARTY_LICENSES_GO.html"),
-		filepath.Join(cfg.OutDir, "NOTICE_GO.md"),
+		tpnDir,
+		nDir,
 		cfg.OutLicensesDir,
 	)
 
