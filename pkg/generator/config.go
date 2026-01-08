@@ -8,7 +8,6 @@ type Config struct {
 	RepoName string
 
 	SBOMPath         string
-	LicenseMapPath   string
 	HTMLTemplatePath string
 	NoticeTplPath    string
 
@@ -27,8 +26,7 @@ func DefaultConfig() Config {
 	sbomPath := outDir + "/sbom"
 
 	return Config{
-		SBOMPath:       sbomPath,
-		LicenseMapPath: "data/license-map.json",
+		SBOMPath: sbomPath,
 
 		OutDir:         outDir,
 		OutLicensesDir: outLicensesDir,

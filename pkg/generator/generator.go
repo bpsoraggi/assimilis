@@ -55,8 +55,8 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to render notice output: %w", err)
 	}
 
-	tpnDir := filepath.Join(cfg.OutDir, "THIRD_PARTY_LICENSES.html")
-	nDir := filepath.Join(cfg.OutDir, "NOTICE.md")
+	tpnDir := filepath.Join(cfg.OutDir, outHTMLFileName)
+	nDir := filepath.Join(cfg.OutDir, outNoticeFileName)
 	if err := writeText(tpnDir, htmlOut); err != nil {
 		return fmt.Errorf("failed to write HTML output: %w", err)
 	}
@@ -79,7 +79,7 @@ func loadInputs(ctx context.Context, cfg Config) (SBOM, map[string]string, map[s
 		return SBOM{}, nil, nil, fmt.Errorf("failed to read SBOM: %w", err)
 	}
 
-	licenseMap, err := loadLicenseMap(cfg.LicenseMapPath)
+	licenseMap, err := loadLicenseMap(licenseMapPath)
 	if err != nil {
 		return SBOM{}, nil, nil, fmt.Errorf("failed to read license map: %w", err)
 	}

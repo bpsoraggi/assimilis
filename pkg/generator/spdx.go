@@ -33,7 +33,7 @@ func fetchText(ctx context.Context, url string) (string, error) {
 }
 
 func loadSpdxNameMap(ctx context.Context, spdxVersion string) (map[string]string, error) {
-	url := fmt.Sprintf("https://raw.githubusercontent.com/spdx/license-list-data/%s/json/licenses.json", spdxVersion)
+	url := fmt.Sprintf(spdxNameMapURLFmt, spdxVersion)
 	body, err := fetchText(ctx, url)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func getLicenseText(ctx context.Context, cfg Config, licenseID string) (string, 
 		return string(b), nil
 	}
 
-	url := fmt.Sprintf("https://raw.githubusercontent.com/spdx/license-list-data/%s/text/%s.txt", cfg.SPDXVersion, licenseID)
+	url := fmt.Sprintf(spdxLicenseTextURLFmt, cfg.SPDXVersion, licenseID)
 	txt, err := fetchText(ctx, url)
 	if err != nil {
 		return "", fmt.Errorf("could not fetch SPDX text for %s from %s: %w", licenseID, url, err)
