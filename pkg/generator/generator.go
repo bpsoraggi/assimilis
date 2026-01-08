@@ -109,7 +109,7 @@ func buildModel(ctx context.Context, cfg Config, sbom SBOM, licenseMap map[strin
 
 	licenses, err := buildLicenseBlocks(ctx, cfg, byLicense, spdxNames)
 	if err != nil {
-		return Model{}, err
+		return Model{}, fmt.Errorf("failed to build license blocks: %w", err)
 	}
 
 	overview := buildOverview(licenses)

@@ -19,7 +19,7 @@ func fetchText(ctx context.Context, url string) (string, error) {
 	client := &http.Client{Timeout: 20 * time.Second}
 	res, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to fetch %s: %w", url, err)
 	}
 	defer func() { _ = res.Body.Close() }()
 
@@ -29,14 +29,14 @@ func fetchText(ctx context.Context, url string) (string, error) {
 	}
 
 	b, err := io.ReadAll(res.Body)
-	return string(b), err
+	return string(b), fmt.Errorf("failed to read response body from %s: %w", url, err)
 }
 
 func loadSpdxNameMap(ctx context.Context, spdxVersion string) (map[string]string, error) {
 	url := fmt.Sprintf(spdxNameMapURLFmt, spdxVersion)
 	body, err := fetchText(ctx, url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch SPDX name map from %s: %w", url, err)
 	}
 
 	var payload struct {
@@ -46,7 +46,7 @@ func loadSpdxNameMap(ctx context.Context, spdxVersion string) (map[string]string
 		} `json:"licenses"`
 	}
 	if err := json.Unmarshal([]byte(body), &payload); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal SPDX name map from %s: %w", url, err)
 	}
 
 	out := make(map[string]string, len(payload.Licenses))
@@ -69,7 +69,7 @@ func getLicenseText(ctx context.Context, cfg Config, licenseID string) (string, 
 		// #nosec G304 -- customPath is constructed from controlled inputs
 		b, err := os.ReadFile(customPath)
 		if err != nil {
-			return "", fmt.Errorf("unknown license %q: expected custom license text at %s", licenseID, customPath)
+			return "", fmt.Errorf("unknown license %q: expected custom license text at %s: %w", licenseID, customPath, err)
 		}
 
 		return string(b), nil
@@ -82,7 +82,7 @@ func getLicenseText(ctx context.Context, cfg Config, licenseID string) (string, 
 	}
 
 	if err := writeText(cachePath, txt); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to cache SPDX text for %s at %s: %w", licenseID, cachePath, err)
 	}
 
 	return txt, nil

@@ -10,6 +10,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/assimilis/pkg/generator"
+	"github.com/traefik/assimilis/pkg/logger"
 	"github.com/urfave/cli/v3"
 )
 
@@ -49,42 +50,38 @@ func main() {
 			},
 		},
 		Action: func(ctx context.Context, _ *cli.Command) error {
-			err := validate(cfg)
-			if err != nil {
-				return err
-			}
 			return run(cfg, ctx)
 		},
 	}
 
 	if err := app.Run(context.Background(), os.Args); err != nil {
+		var unknownErr generator.UnknownLicensesError
+		if errors.As(err, &unknownErr) {
+			log.Fatal().
+				Err(unknownErr).
+				Strs("unknown_licenses", unknownErr.IDs).
+				Msg("Unknown license expressions found. Map them to valid SPDX IDs or add custom license texts.")
+		}
 		log.Fatal().Err(err).Msg("Application error")
 	}
 }
 
 func validate(cfg generator.Config) error {
 	if strings.TrimSpace(cfg.RepoName) == "" {
-		return errors.New("-repo-name cannot be empty")
+		return fmt.Errorf("--repo-name cannot be empty")
 	}
 	return nil
 }
 
 func run(cfg generator.Config, ctx context.Context) error {
+	logger.Setup("info")
 	err := validate(cfg)
 	if err != nil {
 		return err
 	}
 
 	if err := generator.Run(ctx, cfg); err != nil {
-		var unknownErr generator.UnknownLicensesError
-		if errors.As(err, &unknownErr) {
-			fmt.Fprintln(os.Stderr, "ERROR: Unknown license expressions found:")
-			for _, id := range unknownErr.IDs {
-				fmt.Fprintln(os.Stderr, "-", id)
-			}
-			return fmt.Errorf("Map them to valid SPDX IDs or add custom license texts.")
-		}
-		return fmt.Errorf("ERROR: %v\n", err)
+		return fmt.Errorf("failed to run generator: %w", err)
 	}
 	return nil
 }

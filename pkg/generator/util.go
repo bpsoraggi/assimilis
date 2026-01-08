@@ -2,6 +2,7 @@ package generator
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,7 +13,7 @@ import (
 func writeText(p, s string) error {
 	// #nosec G301 -- output directory should be readable in artifacts
 	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
-		return err
+		return fmt.Errorf("failed to create output directory for %q: %w", p, err)
 	}
 
 	// #nosec G306 -- generated notices should be readable
@@ -24,11 +25,11 @@ func readJSON[T any](path string) (T, error) {
 	// #nosec G304 -- only reading from trusted paths
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return zero, err
+		return zero, fmt.Errorf("failed to read file %q: %w", path, err)
 	}
 	var out T
 	if err := json.Unmarshal(b, &out); err != nil {
-		return zero, err
+		return zero, fmt.Errorf("failed to unmarshal JSON from file %q: %w", path, err)
 	}
 	return out, nil
 }
