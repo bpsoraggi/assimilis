@@ -1,4 +1,4 @@
-module github.com/traefik/assimilis
+module github.com/bpsoraggi/assimilis
 
 go 1.25.1
 
