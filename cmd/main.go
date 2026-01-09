@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/bpsoraggi/assimilis/pkg/generator"
+	"github.com/bpsoraggi/assimilis/pkg/logger"
 	"github.com/rs/zerolog/log"
-	"github.com/traefik/assimilis/pkg/generator"
-	"github.com/traefik/assimilis/pkg/logger"
 	"github.com/urfave/cli/v3"
 )
 
