@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
+	"github.com/bpsoraggi/assimilis/pkg/generator"
 	"github.com/stretchr/testify/require"
-	"github.com/traefik/assimilis/pkg/generator"
 )
 
 func TestValidate_Fail(t *testing.T) {
