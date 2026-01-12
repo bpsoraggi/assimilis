@@ -14,6 +14,7 @@ import (
 // Setup configures the logger.
 func Setup(level string) {
 	var w io.Writer = os.Stdout
+
 	writer := zerolog.ConsoleWriter{
 		Out:        w,
 		TimeFormat: time.RFC3339,

@@ -62,6 +62,7 @@ func main() {
 				Strs("unknown_licenses", unknownErr.IDs).
 				Msg("Unknown license expressions found. Map them to valid SPDX IDs or add custom license texts.")
 		}
+
 		log.Fatal().Err(err).Msg("Application error")
 	}
 }
@@ -70,11 +71,13 @@ func validate(cfg generator.Config) error {
 	if strings.TrimSpace(cfg.RepoName) == "" {
 		return fmt.Errorf("--repo-name cannot be empty")
 	}
+
 	return nil
 }
 
 func run(ctx context.Context, cfg generator.Config) error {
 	logger.Setup("info")
+
 	err := validate(cfg)
 	if err != nil {
 		return err
@@ -83,5 +86,6 @@ func run(ctx context.Context, cfg generator.Config) error {
 	if err := generator.Run(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to run generator: %w", err)
 	}
+
 	return nil
 }

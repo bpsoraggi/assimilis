@@ -57,9 +57,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	tpnDir := filepath.Join(cfg.OutDir, outHTMLFileName)
 	nDir := filepath.Join(cfg.OutDir, outNoticeFileName)
+
 	if err := writeText(tpnDir, htmlOut); err != nil {
 		return fmt.Errorf("failed to write HTML output: %w", err)
 	}
+
 	if err := writeText(nDir, noticeOut); err != nil {
 		return fmt.Errorf("failed to write notice output: %w", err)
 	}
@@ -97,10 +99,12 @@ func loadLicenseMap(path string) (map[string]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read license map: %w", err)
 	}
+
 	var m map[string]string
 	if err := json.Unmarshal(b, &m); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal license map: %w", err)
 	}
+
 	return m, nil
 }
 
@@ -129,12 +133,15 @@ func buildOverview(licenses []LicenseBlock) []OverviewItem {
 	for _, l := range licenses {
 		overview = append(overview, OverviewItem{ID: l.ID, Name: l.Name, Count: len(l.UsedBy)})
 	}
+
 	sort.Slice(overview, func(i, j int) bool {
 		if overview[i].Count != overview[j].Count {
 			return overview[i].Count > overview[j].Count
 		}
+
 		return overview[i].ID < overview[j].ID
 	})
+
 	return overview
 }
 
@@ -145,9 +152,11 @@ func buildNotices(byKey map[string]OutComponent) []OutComponent {
 			notices = append(notices, c)
 		}
 	}
+
 	sort.Slice(notices, func(i, j int) bool {
 		return notices[i].Name+notices[i].Version < notices[j].Name+notices[j].Version
 	})
+
 	return notices
 }
 
@@ -156,10 +165,13 @@ func buildLicenseBlocks(ctx context.Context, cfg Config, byLicense map[string][]
 	for id := range byLicense {
 		licenseIDs = append(licenseIDs, id)
 	}
+
 	sort.Strings(licenseIDs)
 
 	licenses := make([]LicenseBlock, 0, len(licenseIDs))
+
 	var unknowns []string
+
 	for _, id := range licenseIDs {
 		comps := byLicense[id]
 		sort.Slice(comps, func(i, j int) bool {
@@ -175,6 +187,7 @@ func buildLicenseBlocks(ctx context.Context, cfg Config, byLicense map[string][]
 		}
 
 		var text string
+
 		t, errl := getLicenseText(ctx, cfg, id)
 		if errl != nil {
 			unknowns = append(unknowns, id)
@@ -228,6 +241,7 @@ func buildIndex(cfg Config, components []Component, licenseMap map[string]string
 			if existing.Copyright == "" && out.Copyright != "" {
 				existing.Copyright = out.Copyright
 			}
+
 			byKey[key] = existing
 			out = existing
 		} else {

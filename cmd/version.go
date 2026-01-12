@@ -24,5 +24,6 @@ func displayVersion(_ context.Context, _ *cli.Command) error {
  go compiler : %s
  platform    : %s/%s
 `, version, commit, date, runtime.Version(), runtime.Compiler, runtime.GOOS, runtime.GOARCH)
+
 	return nil
 }

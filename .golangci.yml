@@ -3,19 +3,14 @@ linters:
   default: all
   disable:
     - contextcheck
-    - cyclop
-    - dupl
     - err113
     - exhaustive
     - exhaustruct
     - forbidigo
-    - gocognit
     - ireturn
     - lll
     - mnd
-    - nestif
     - nilnil
-    - nlreturn
     - noctx
     - noinlineerr
     - paralleltest
@@ -27,7 +22,6 @@ linters:
     - varnamelen
     - wrapcheck
     - wsl
-    - wsl_v5
     - gosec
     - perfsprint
   settings:

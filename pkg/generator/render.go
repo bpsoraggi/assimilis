@@ -10,6 +10,7 @@ import (
 
 func renderHTML(cfg Config, embedded embed.FS, model any) (string, error) {
 	var tpl *template.Template
+
 	var err error
 
 	if cfg.HTMLTemplatePath != "" {
@@ -33,6 +34,7 @@ func renderHTML(cfg Config, embedded embed.FS, model any) (string, error) {
 
 func renderText(cfg Config, embedded embed.FS, model any) (string, error) {
 	var tpl *texttpl.Template
+
 	var err error
 
 	if cfg.NoticeTplPath != "" {

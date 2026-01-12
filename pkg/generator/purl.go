@@ -11,11 +11,13 @@ func shouldIgnorePURL(cfg Config, purl string) bool {
 	if purl == "" {
 		return false
 	}
+
 	for _, re := range cfg.IgnorePURLPatterns {
 		if re.MatchString(purl) {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -24,6 +26,7 @@ func componentURLFromPurl(purl string) string {
 	if len(m) != 4 {
 		return ""
 	}
+
 	typ := m[1]
 	name := m[2]
 
@@ -39,6 +42,7 @@ func componentURLFromPurl(purl string) string {
 				return "https://github.com/" + parts[1] + "/" + parts[2]
 			}
 		}
+
 		return "https://pkg.go.dev/" + name
 	default:
 		return ""

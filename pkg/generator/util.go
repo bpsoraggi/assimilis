@@ -27,10 +27,12 @@ func readJSON[T any](path string) (T, error) {
 	if err != nil {
 		return zero, fmt.Errorf("failed to read file %q: %w", path, err)
 	}
+
 	var out T
 	if err := json.Unmarshal(b, &out); err != nil {
 		return zero, fmt.Errorf("failed to unmarshal JSON from file %q: %w", path, err)
 	}
+
 	return out, nil
 }
 
@@ -42,15 +44,20 @@ func uniqSorted(in []string) []string {
 			m[s] = struct{}{}
 		}
 	}
+
 	out := make([]string, 0, len(m))
+
 	for k := range m {
 		out = append(out, k)
 	}
+
 	sort.Strings(out)
+
 	return out
 }
 
 func sanitizeID(s string) string {
 	s = regexp.MustCompile(`[^A-Za-z0-9]+`).ReplaceAllString(s, "-")
+
 	return strings.Trim(s, "-")
 }

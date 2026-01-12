@@ -12,6 +12,7 @@ func normalizeLicenseIDs(licenses []LicenseChoice, licenseMap map[string]string,
 	for _, item := range licenses {
 		if item.License != nil && item.License.ID != "" {
 			ids = append(ids, item.License.ID)
+
 			continue
 		}
 
@@ -19,6 +20,7 @@ func normalizeLicenseIDs(licenses []LicenseChoice, licenseMap map[string]string,
 			if item.License != nil {
 				return item.License.Name
 			}
+
 			return ""
 		}))
 		if expr == "" {
@@ -27,6 +29,7 @@ func normalizeLicenseIDs(licenses []LicenseChoice, licenseMap map[string]string,
 
 		if mapped, ok := licenseMap[expr]; ok && mapped != "" {
 			ids = append(ids, mapped)
+
 			continue
 		}
 
@@ -35,8 +38,10 @@ func normalizeLicenseIDs(licenses []LicenseChoice, licenseMap map[string]string,
 			lic := spdxexp.Normalize(l)
 			if extracted := spdxexp.Normalize(lic); spdxNames[extracted] != "" {
 				ids = append(ids, extracted)
+
 				continue
 			}
+
 			ids = append(ids, "LicenseRef-"+sanitizeID(expr))
 		}
 	}
@@ -48,5 +53,6 @@ func firstNonEmpty(a string, b func() string) string {
 	if strings.TrimSpace(a) != "" {
 		return a
 	}
+
 	return b()
 }

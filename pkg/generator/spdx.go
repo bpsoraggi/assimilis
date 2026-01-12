@@ -17,14 +17,17 @@ func fetchText(ctx context.Context, url string) (string, error) {
 	req.Header.Set("User-Agent", "oss-attributions-generator")
 
 	client := &http.Client{Timeout: 20 * time.Second}
+
 	res, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch %s: %w", url, err)
 	}
+
 	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		_, _ = io.Copy(io.Discard, res.Body)
+
 		return "", fmt.Errorf("http %d for %s", res.StatusCode, url)
 	}
 
@@ -32,11 +35,13 @@ func fetchText(ctx context.Context, url string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body from %s: %w", url, err)
 	}
+
 	return string(b), nil
 }
 
 func loadSpdxNameMap(ctx context.Context, spdxVersion string) (map[string]string, error) {
 	url := fmt.Sprintf(spdxNameMapURLFmt, spdxVersion)
+
 	body, err := fetchText(ctx, url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch SPDX name map from %s: %w", url, err)
@@ -56,6 +61,7 @@ func loadSpdxNameMap(ctx context.Context, spdxVersion string) (map[string]string
 	for _, l := range payload.Licenses {
 		out[l.ID] = l.Name
 	}
+
 	return out, nil
 }
 
@@ -68,6 +74,7 @@ func getLicenseText(ctx context.Context, cfg Config, licenseID string) (string, 
 
 	if strings.HasPrefix(licenseID, "LicenseRef-") {
 		customPath := filepath.Join(cfg.OutLicensesDir, "custom", licenseID+".txt")
+
 		b, err := os.ReadFile(customPath)
 		if err != nil {
 			return "", fmt.Errorf("unknown license %q: expected custom license text at %s: %w", licenseID, customPath, err)
@@ -77,6 +84,7 @@ func getLicenseText(ctx context.Context, cfg Config, licenseID string) (string, 
 	}
 
 	url := fmt.Sprintf(spdxLicenseTextURLFmt, cfg.SPDXVersion, licenseID)
+
 	txt, err := fetchText(ctx, url)
 	if err != nil {
 		return "", fmt.Errorf("could not fetch SPDX text for %s from %s: %w", licenseID, url, err)
