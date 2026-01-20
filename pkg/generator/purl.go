@@ -7,12 +7,12 @@ import (
 
 var purlRegex = regexp.MustCompile(`^pkg:([^/]+)/(.+)@([^@]+)$`)
 
-func shouldIgnorePURL(cfg Config, purl string) bool {
+func shouldIgnorePURL(excludeComponents ExcludeComponents, purl string) bool {
 	if purl == "" {
 		return false
 	}
 
-	for _, re := range cfg.IgnorePURLPatterns {
+	for _, re := range excludeComponents.PURLRegex {
 		if re.MatchString(purl) {
 			return true
 		}

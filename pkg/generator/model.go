@@ -1,5 +1,7 @@
 package generator
 
+import "regexp"
+
 // SBOM represents a CycloneDX SBOM structure.
 type SBOM struct {
 	Components []Component `json:"components"`
@@ -11,7 +13,32 @@ type Component struct {
 	Version   string          `json:"version"`
 	PURL      string          `json:"purl"`
 	Copyright string          `json:"copyright"`
+	Supplier  string          `json:"supplier"`
 	Licenses  []LicenseChoice `json:"licenses"`
+}
+
+// Filters represents the filters for excluding components.
+type Filters struct {
+	PURLRegex []string `json:"purlRegex"`
+	Suppliers []string `json:"suppliers"`
+}
+
+// ExcludeComponents holds compiled regex patterns for excluding components.
+type ExcludeComponents struct {
+	PURLRegex []*regexp.Regexp
+	Suppliers []*regexp.Regexp
+}
+
+func (ec *ExcludeComponents) compile(filters Filters) {
+	for _, reStr := range filters.PURLRegex {
+		re := regexp.MustCompile(reStr)
+		ec.PURLRegex = append(ec.PURLRegex, re)
+	}
+
+	for _, reStr := range filters.Suppliers {
+		re := regexp.MustCompile(reStr)
+		ec.Suppliers = append(ec.Suppliers, re)
+	}
 }
 
 // LicenseChoice represents a license in a component.
