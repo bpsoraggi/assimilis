@@ -5,6 +5,7 @@ const (
 	outNoticeFileName = "NOTICE.md"
 
 	licenseMapPath = "data/license-map.json"
+	filtersPath    = "data/filters.json"
 
 	spdxNameMapURLFmt     = "https://raw.githubusercontent.com/spdx/license-list-data/%s/json/licenses.json"
 	spdxLicenseTextURLFmt = "https://raw.githubusercontent.com/spdx/license-list-data/%s/text/%s.txt"

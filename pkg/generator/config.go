@@ -1,8 +1,6 @@
 // Package generator generates NOTICE/HTML attribution artifacts from a CycloneDX SBOM.
 package generator
 
-import "regexp"
-
 // Config the global configuration.
 type Config struct {
 	RepoName string
@@ -15,8 +13,6 @@ type Config struct {
 	OutLicensesDir string
 
 	SPDXVersion string
-
-	IgnorePURLPatterns []*regexp.Regexp
 }
 
 // DefaultConfig returns the default configuration.
@@ -32,9 +28,5 @@ func DefaultConfig() Config {
 		OutLicensesDir: outLicensesDir,
 
 		SPDXVersion: "v3.27.0",
-
-		IgnorePURLPatterns: []*regexp.Regexp{
-			regexp.MustCompile(`use\.local`),
-		},
 	}
 }

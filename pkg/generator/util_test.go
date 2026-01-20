@@ -45,7 +45,7 @@ func TestReadJSON(t *testing.T) {
 	p := filepath.Join(tmp, "bom.json")
 	require.NoError(t, os.WriteFile(p, []byte(`{"components":[{"name":"foo","version":"1"}]}`), 0o644))
 
-	sbom, err := readJSON[SBOM](p)
+	sbom, err := readJSON[SBOM](os.ReadFile, p)
 	require.NoError(t, err)
 	require.Len(t, sbom.Components, 1)
 	assert.Equal(t, "foo", sbom.Components[0].Name)
