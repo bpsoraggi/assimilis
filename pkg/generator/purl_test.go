@@ -10,15 +10,12 @@ import (
 func TestShouldIgnorePURL(t *testing.T) {
 	t.Parallel()
 
-	cfg := Config{
-		IgnorePURLPatterns: []*regexp.Regexp{
-			regexp.MustCompile(`use\.local`),
-		},
-	}
+	filters := Filters{}
+	filters.PURLRegex = []*regexp.Regexp{regexp.MustCompile(`use\.local`)}
 
-	assert.False(t, shouldIgnorePURL(cfg, ""))
-	assert.False(t, shouldIgnorePURL(cfg, "pkg:npm/foo@1.2.30"))
-	assert.True(t, shouldIgnorePURL(cfg, "pkg:golang/use.local/bar@v1.0.0"))
+	assert.False(t, shouldIgnorePURL(filters, ""))
+	assert.False(t, shouldIgnorePURL(filters, "pkg:npm/foo@1.2.30"))
+	assert.True(t, shouldIgnorePURL(filters, "pkg:golang/use.local/bar@v1.0.0"))
 }
 
 func TestComponentURLFromPurl(t *testing.T) {

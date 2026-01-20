@@ -1,0 +1,8 @@
+{
+    "purlRegex": [
+        "use\\.local"
+    ],
+    "suppliers": [
+        "Traefik Labs"
+    ]
+}

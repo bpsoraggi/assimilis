@@ -3,7 +3,6 @@ package generator
 import (
 	"context"
 	"embed"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +11,7 @@ import (
 	"time"
 )
 
-//go:embed templates/*.gotpl data/license-map.json
+//go:embed templates/*.gotpl data/*.json
 var embedded embed.FS
 
 // UnknownLicensesError indicates that some license expressions could not be resolved.
@@ -26,7 +25,7 @@ func (e UnknownLicensesError) Error() string {
 
 // Run executes the generator with the given configuration.
 func Run(ctx context.Context, cfg Config) error {
-	sbom, licenseMap, spdxNames, err := loadInputs(ctx, cfg)
+	sbom, excludeComponents, licenseMap, spdxNames, err := loadInputs(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to load inputs: %w", err)
 	}
@@ -39,7 +38,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create output licenses directory: %w", err)
 	}
 
-	model, err := buildModel(ctx, cfg, sbom, licenseMap, spdxNames)
+	model, err := buildModel(ctx, cfg, sbom, excludeComponents, licenseMap, spdxNames)
 	if err != nil {
 		return fmt.Errorf("failed to build model: %w", err)
 	}
@@ -74,41 +73,46 @@ func Run(ctx context.Context, cfg Config) error {
 	return nil
 }
 
-func loadInputs(ctx context.Context, cfg Config) (SBOM, map[string]string, map[string]string, error) {
-	sbom, err := readJSON[SBOM](filepath.Join(cfg.SBOMPath, cfg.RepoName+".cdx.json"))
+func loadInputs(ctx context.Context, cfg Config) (SBOM, Filters, map[string]string, map[string]string, error) {
+	sbom, err := readJSON[SBOM](os.ReadFile, filepath.Join(cfg.SBOMPath, cfg.RepoName+".cdx.json"))
 	if err != nil {
-		return SBOM{}, nil, nil, fmt.Errorf("failed to read SBOM: %w", err)
+		return SBOM{}, Filters{}, nil, nil, fmt.Errorf("failed to read SBOM: %w", err)
 	}
 
-	licenseMap, err := loadLicenseMap(licenseMapPath)
+	filters, err := readJSON[Filters](embedded.ReadFile, filtersPath)
 	if err != nil {
-		return SBOM{}, nil, nil, fmt.Errorf("failed to read license map: %w", err)
+		return SBOM{}, Filters{}, nil, nil, fmt.Errorf("failed to read SBOM: %w", err)
+	}
+
+	licenseMap, err := readJSON[map[string]string](embedded.ReadFile, licenseMapPath)
+	if err != nil {
+		return SBOM{}, Filters{}, nil, nil, fmt.Errorf("failed to read license map: %w", err)
 	}
 
 	spdxNames, err := loadSpdxNameMap(ctx, cfg.SPDXVersion)
 	if err != nil {
-		return SBOM{}, nil, nil, fmt.Errorf("failed to load SPDX names: %w", err)
+		return SBOM{}, Filters{}, nil, nil, fmt.Errorf("failed to load SPDX names: %w", err)
 	}
 
-	return sbom, licenseMap, spdxNames, nil
+	return sbom, filters, licenseMap, spdxNames, nil
 }
 
-func loadLicenseMap(path string) (map[string]string, error) {
-	b, err := embedded.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read license map: %w", err)
+func shouldIgnoreComponent(c Component, filters Filters) bool {
+	if shouldIgnorePURL(filters, c.PURL) {
+		return true
 	}
 
-	var m map[string]string
-	if err := json.Unmarshal(b, &m); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal license map: %w", err)
+	for _, re := range filters.Suppliers {
+		if re.MatchString(c.Supplier) {
+			return true
+		}
 	}
 
-	return m, nil
+	return false
 }
 
-func buildModel(ctx context.Context, cfg Config, sbom SBOM, licenseMap map[string]string, spdxNames map[string]string) (Model, error) {
-	byLicense, byKey := buildIndex(cfg, sbom.Components, licenseMap)
+func buildModel(ctx context.Context, cfg Config, sbom SBOM, filters Filters, licenseMap map[string]string, spdxNames map[string]string) (Model, error) {
+	byLicense, byKey := buildIndex(sbom.Components, filters, licenseMap)
 
 	licenses, err := buildLicenseBlocks(ctx, cfg, byLicense, spdxNames)
 	if err != nil {
@@ -210,12 +214,12 @@ func buildLicenseBlocks(ctx context.Context, cfg Config, byLicense map[string][]
 	return licenses, nil
 }
 
-func buildIndex(cfg Config, components []Component, licenseMap map[string]string) (map[string][]OutComponent, map[string]OutComponent) {
+func buildIndex(components []Component, filters Filters, licenseMap map[string]string) (map[string][]OutComponent, map[string]OutComponent) {
 	byLicense := map[string][]OutComponent{}
 	byKey := map[string]OutComponent{}
 
 	for _, c := range components {
-		if shouldIgnorePURL(cfg, c.PURL) {
+		if shouldIgnoreComponent(c, filters) {
 			continue
 		}
 

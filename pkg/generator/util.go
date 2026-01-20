@@ -18,10 +18,10 @@ func writeText(p, s string) error {
 	return os.WriteFile(p, []byte(s), 0o644)
 }
 
-func readJSON[T any](path string) (T, error) {
+func readJSON[T any](readFile func(string) ([]byte, error), path string) (T, error) {
 	var zero T
 
-	b, err := os.ReadFile(path)
+	b, err := readFile(path)
 	if err != nil {
 		return zero, fmt.Errorf("failed to read file %q: %w", path, err)
 	}
