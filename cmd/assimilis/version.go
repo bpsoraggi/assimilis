@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/traefik/assimilis/pkg/version"
+	"github.com/bpsoraggi/assimilis/pkg/version"
 	"github.com/urfave/cli/v3"
 )
 
