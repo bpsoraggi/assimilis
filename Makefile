@@ -2,7 +2,7 @@
 
 export GO111MODULE=on
 
-LDFLAGS_PREFIX := github.com/traefik/assimilis/v2/pkg/version
+LDFLAGS_PREFIX := github.com/traefik/assimilis/v3/pkg/version
 
 TAG_NAME := $(shell git tag -l --contains HEAD)
 SHA := $(shell git rev-parse --short HEAD)
@@ -29,6 +29,11 @@ lint:
 
 build: clean
 	@echo Version: $(VERSION) $(BUILD_DATE)
+	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN_OUTPUT) ./cmd/assimilis/
+
+install:
+	@echo Version: $(VERSION) $(BUILD_DATE)
+	CGO_ENABLED=0 go install -trimpath -ldflags '$(LDFLAGS)' ./cmd/assimilis/
 	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN_OUTPUT) ./cmd/assimilis/
 
 install:
