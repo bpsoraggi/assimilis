@@ -34,8 +34,3 @@ build: clean
 install:
 	@echo Version: $(VERSION) $(BUILD_DATE)
 	CGO_ENABLED=0 go install -trimpath -ldflags '$(LDFLAGS)' ./cmd/assimilis/
-	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN_OUTPUT) ./cmd/assimilis/
-
-install:
-	@echo Version: $(VERSION) $(BUILD_DATE)
-	CGO_ENABLED=0 go install -trimpath -ldflags '$(LDFLAGS)' ./cmd/assimilis/

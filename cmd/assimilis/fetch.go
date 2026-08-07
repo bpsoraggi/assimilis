@@ -1,0 +1,164 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/rs/zerolog/log"
+	"github.com/traefik/assimilis/v3/pkg/aikido"
+	"github.com/traefik/assimilis/v3/pkg/generator"
+	"github.com/traefik/assimilis/v3/pkg/logger"
+	"github.com/urfave/cli/v3"
+)
+
+type fetchConfig struct {
+	baseURL      string
+	clientID     string
+	clientSecret string
+	repoCode     string
+}
+
+type sbomDownloader interface {
+	DownloadSBOM(ctx context.Context, repoCode string) ([]byte, error)
+}
+
+func buildFetchCommand(cfg *generator.Config) *cli.Command {
+	fetchCfg := fetchConfig{baseURL: "https://app.aikido.dev"}
+
+	return &cli.Command{
+		Name:  "fetch",
+		Usage: "Download an SBOM from Aikido and generate attribution files",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "repo-code",
+				Usage:       "Aikido repository code",
+				Sources:     cli.EnvVars("AIKIDO_REPO_CODE"),
+				Destination: &fetchCfg.repoCode,
+			},
+			&cli.StringFlag{
+				Name:        "aikido-base-url",
+				Usage:       "Aikido API base URL",
+				Value:       fetchCfg.baseURL,
+				Sources:     cli.EnvVars("AIKIDO_BASE_URL"),
+				Destination: &fetchCfg.baseURL,
+			},
+		},
+		Action: func(ctx context.Context, _ *cli.Command) error {
+			fetchCfg.clientID = os.Getenv("AIK_CLIENT")
+			fetchCfg.clientSecret = os.Getenv("AIK_SECRET")
+
+			if err := validateFetch(*cfg, fetchCfg); err != nil {
+				return err
+			}
+
+			logger.Setup("info")
+
+			client := aikido.NewClient(fetchCfg.baseURL, fetchCfg.clientID, fetchCfg.clientSecret, &http.Client{
+				Timeout: 2 * time.Minute,
+			})
+
+			return fetch(ctx, *cfg, fetchCfg.repoCode, client, generator.Run, time.Now)
+		},
+	}
+}
+
+func validateFetch(cfg generator.Config, fetchCfg fetchConfig) error {
+	if err := validate(cfg); err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(fetchCfg.repoCode) == "" {
+		return fmt.Errorf("--repo-code or AIKIDO_REPO_CODE cannot be empty")
+	}
+
+	if strings.TrimSpace(fetchCfg.clientID) == "" {
+		return fmt.Errorf("AIK_CLIENT cannot be empty")
+	}
+
+	if strings.TrimSpace(fetchCfg.clientSecret) == "" {
+		return fmt.Errorf("AIK_SECRET cannot be empty")
+	}
+
+	return nil
+}
+
+func fetch(
+	ctx context.Context,
+	cfg generator.Config,
+	repoCode string,
+	downloader sbomDownloader,
+	generate func(context.Context, generator.Config) error,
+	now func() time.Time,
+) error {
+	log.Info().Str("repo_code", repoCode).Msg("Downloading CycloneDX SBOM from Aikido")
+
+	sbom, err := downloader.DownloadSBOM(ctx, repoCode)
+	if err != nil {
+		return err
+	}
+
+	sbomFile := filepath.Join(cfg.SBOMPath, cfg.RepoName+".cdx.json")
+	if err := writeFile(sbomFile, sbom); err != nil {
+		return fmt.Errorf("failed to save SBOM: %w", err)
+	}
+
+	log.Info().Str("path", sbomFile).Msg("SBOM saved")
+
+	if err := generate(ctx, cfg); err != nil {
+		return fmt.Errorf("failed to run generator: %w", err)
+	}
+
+	timestampFile := filepath.Join(cfg.OutDir, ".last_generated_at")
+	timestamp := strconv.FormatInt(now().UTC().Unix(), 10) + "\n"
+
+	if err := writeFile(timestampFile, []byte(timestamp)); err != nil {
+		return fmt.Errorf("failed to write generation timestamp: %w", err)
+	}
+
+	log.Info().Str("timestamp_file", timestampFile).Msg("Third-party files generated successfully")
+
+	return nil
+}
+
+func writeFile(path string, data []byte) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("failed to create parent directory: %w", err)
+	}
+
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".assimilis-*")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary file: %w", err)
+	}
+
+	tmpPath := tmp.Name()
+
+	defer func() { _ = os.Remove(tmpPath) }()
+
+	if err := tmp.Chmod(0o644); err != nil {
+		_ = tmp.Close()
+
+		return fmt.Errorf("failed to set temporary file permissions: %w", err)
+	}
+
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+
+		return fmt.Errorf("failed to write temporary file: %w", err)
+	}
+
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("failed to close temporary file: %w", err)
+	}
+
+	if err := os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("failed to replace destination file: %w", err)
+	}
+
+	return nil
+}
