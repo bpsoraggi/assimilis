@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/traefik/assimilis/v3/pkg/generator"
+	"github.com/traefik/assimilis/v2/pkg/generator"
 )
 
 const testRepoName = "repo"

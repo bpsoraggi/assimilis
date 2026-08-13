@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/traefik/assimilis/v3/pkg/aikido"
-	"github.com/traefik/assimilis/v3/pkg/generator"
-	"github.com/traefik/assimilis/v3/pkg/logger"
+	"github.com/traefik/assimilis/v2/pkg/aikido"
+	"github.com/traefik/assimilis/v2/pkg/generator"
+	"github.com/traefik/assimilis/v2/pkg/logger"
 	"github.com/urfave/cli/v3"
 )
 
