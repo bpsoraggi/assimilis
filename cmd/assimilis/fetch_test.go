@@ -73,7 +73,7 @@ func TestFetchDoesNotUpdateTimestampWhenFailure(t *testing.T) {
 	require.Error(t, err)
 
 	_, statErr := os.Stat(filepath.Join(outDir, ".last_generated_at"))
-	assert.ErrorIs(t, statErr, os.ErrNotExist)
+	require.ErrorIs(t, statErr, os.ErrNotExist)
 }
 
 func TestFetchDoesNotChangeFilesWhenDownloadFailure(t *testing.T) {
@@ -99,5 +99,76 @@ func TestFetchDoesNotChangeFilesWhenDownloadFailure(t *testing.T) {
 	require.Error(t, err)
 
 	_, statErr := os.Stat(filepath.Join(cfg.SBOMPath, "repo.cdx.json"))
-	assert.ErrorIs(t, statErr, os.ErrNotExist)
+	require.ErrorIs(t, statErr, os.ErrNotExist)
+}
+
+func TestFetchDoesNotChangeFilesWhenInvalidSBOM(t *testing.T) {
+	outDir := t.TempDir()
+	cfg := generator.DefaultConfig()
+	cfg.RepoName = testRepoName
+	cfg.OutDir = outDir
+	cfg.OutLicensesDir = filepath.Join(outDir, "licenses")
+	cfg.SBOMPath = filepath.Join(outDir, "sbom")
+
+	err := fetch(
+		context.Background(),
+		cfg,
+		"repo-code",
+		staticDownloader{sbom: []byte(`{"bomFormat":`)},
+		func(context.Context, generator.Config) error {
+			t.Fatal("generator should not be called")
+
+			return nil
+		},
+		time.Now,
+	)
+	require.ErrorContains(t, err, "invalid SBOM returned by Aikido")
+
+	_, statErr := os.Stat(filepath.Join(cfg.SBOMPath, "repo.cdx.json"))
+	require.ErrorIs(t, statErr, os.ErrNotExist)
+
+	_, statErr = os.Stat(filepath.Join(outDir, ".last_generated_at"))
+	require.ErrorIs(t, statErr, os.ErrNotExist)
+}
+
+func TestValidateSBOM(t *testing.T) {
+	testCases := []struct {
+		name          string
+		input         string
+		expectedError string
+	}{
+		{
+			name:  "valid CycloneDX",
+			input: `{"bomFormat":"CycloneDX"}`,
+		},
+		{
+			name:          "invalid JSON",
+			input:         `{"bomFormat":`,
+			expectedError: "failed to decode JSON",
+		},
+		{
+			name:          "missing format",
+			input:         `{}`,
+			expectedError: `unexpected bomFormat ""`,
+		},
+		{
+			name:          "unexpected format",
+			input:         `{"bomFormat":"SPDX"}`,
+			expectedError: `unexpected bomFormat "SPDX"`,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			expectedError := validateSBOM([]byte(testCase.input))
+
+			if testCase.expectedError == "" {
+				require.NoError(t, expectedError)
+
+				return
+			}
+
+			require.ErrorContains(t, expectedError, testCase.expectedError)
+		})
+	}
 }

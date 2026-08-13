@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -100,7 +101,11 @@ func fetch(
 
 	sbom, err := downloader.DownloadSBOM(ctx, repoCode)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to download SBOM: %w", err)
+	}
+
+	if err := validateSBOM(sbom); err != nil {
+		return fmt.Errorf("invalid SBOM returned by Aikido: %w", err)
 	}
 
 	sbomFile := filepath.Join(cfg.SBOMPath, cfg.RepoName+".cdx.json")
@@ -122,6 +127,25 @@ func fetch(
 	}
 
 	log.Info().Str("timestamp_file", timestampFile).Msg("Third-party files generated successfully")
+
+	return nil
+}
+
+func validateSBOM(data []byte) error {
+	var document struct {
+		BOMFormat string `json:"bomFormat"`
+	}
+
+	if err := json.Unmarshal(data, &document); err != nil {
+		return fmt.Errorf("failed to decode JSON: %w", err)
+	}
+
+	if document.BOMFormat != "CycloneDX" {
+		return fmt.Errorf(
+			"unexpected bomFormat %q",
+			document.BOMFormat,
+		)
+	}
 
 	return nil
 }

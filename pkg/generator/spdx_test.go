@@ -40,6 +40,14 @@ func TestFetchText_Fail(t *testing.T) {
 	assert.Contains(t, err.Error(), "http 404")
 }
 
+func TestFetchText_InvalidURL(t *testing.T) {
+	t.Parallel()
+
+	_, err := fetchText(context.Background(), "://invalid")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create request")
+}
+
 func TestGetLicenseText_ReturnCachedFile(t *testing.T) {
 	t.Parallel()
 
