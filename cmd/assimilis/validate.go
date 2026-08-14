@@ -257,6 +257,7 @@ func parseMaxAge(value string) (time.Duration, error) {
 	}
 
 	var unit time.Duration
+
 	switch value[len(value)-1] {
 	case 'm':
 		unit = time.Minute
@@ -322,6 +323,7 @@ func runGit(ctx context.Context, dir string, args ...string) (string, error) {
 		if details != "" {
 			return "", fmt.Errorf("%w: %s", err, details)
 		}
+
 		return "", err
 	}
 
