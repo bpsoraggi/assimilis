@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -120,7 +119,7 @@ func fetch(
 	}
 
 	timestampFile := filepath.Join(cfg.OutDir, ".last_generated_at")
-	timestamp := strconv.FormatInt(now().UTC().Unix(), 10) + "\n"
+	timestamp := now().UTC().Format(time.RFC3339) + "\n"
 
 	if err := writeFile(timestampFile, []byte(timestamp)); err != nil {
 		return fmt.Errorf("failed to write generation timestamp: %w", err)
