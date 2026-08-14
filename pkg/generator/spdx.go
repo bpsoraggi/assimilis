@@ -13,7 +13,11 @@ import (
 )
 
 func fetchText(ctx context.Context, url string) (string, error) {
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request for %s: %w", url, err)
+	}
+
 	req.Header.Set("User-Agent", "oss-attributions-generator")
 
 	client := &http.Client{Timeout: 20 * time.Second}

@@ -21,6 +21,7 @@ func main() {
 		Name:  "assimilis",
 		Usage: "Generate OSS attribution files",
 		Commands: []*cli.Command{
+			buildFetchCommand(&cfg),
 			{
 				Name:   "version",
 				Usage:  "Display version information",

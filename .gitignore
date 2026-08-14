@@ -1,2 +1,2 @@
-third_party
-assimilis
+third_party*
+/assimilis

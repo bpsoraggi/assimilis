@@ -30,6 +30,23 @@ By default, it writes:
     assimilis --repo-name <REPO_NAME>
     ```
 
+### Fetching an SBOM from Aikido
+
+Assimilis can fetch the CycloneDX SBOM from Aikido before generating the attribution files. The Aikido client credentials are read only from the environment:
+
+```bash
+export AIK_CLIENT=<CLIENT_ID>
+export AIK_SECRET=<CLIENT_SECRET>
+
+assimilis fetch \
+  --repo-name <REPO_NAME> \
+  --repo-code <AIKIDO_REPOSITORY_CODE>
+```
+
+`--repo-code` can also be set through `AIKIDO_REPO_CODE`. `AIKIDO_BASE_URL` optionally overrides the default `https://app.aikido.dev` API URL.
+
+The command writes the SBOM to `third_party/sbom/<REPO_NAME>.cdx.json`, generates the normal attribution files, and updates `third_party/.last_generated_at` only after generation succeeds.
+
 ### Configuration
 
 ```
