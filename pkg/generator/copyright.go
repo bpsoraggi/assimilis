@@ -76,22 +76,24 @@ func extractGoCopyrightFromCache(gomodcache, purl string) string {
 		return ""
 	}
 
-	modulePath, version := rest[:idx], rest[idx+1:]
-	if modulePath == "" || version == "" {
+	// PURL components are percent-encoded (syft emits "+incompatible" as
+	// "%2Bincompatible"); decode before mapping them onto the cache layout.
+	modulePath, version := pathUnescape(rest[:idx]), pathUnescape(rest[idx+1:])
+	if !safeRelPath(modulePath) || !safeRelPath(version) {
 		return ""
 	}
 
-	licensePath := filepath.Join(gomodcache, escapeModulePath(modulePath)+"@"+version, "LICENSE")
+	licensePath := filepath.Join(gomodcache, escapeModulePath(modulePath)+"@"+escapeModulePath(version), "LICENSE")
 
 	return firstCopyrightLine(readFileText(licensePath))
 }
 
-// escapeModulePath escapes a Go module path for the module cache filesystem
-// layout: each uppercase letter is replaced with "!" followed by its lowercase.
-func escapeModulePath(path string) string {
+// escapeModulePath escapes a module path or version for the module cache
+// filesystem layout: each uppercase letter becomes "!" plus its lowercase.
+func escapeModulePath(s string) string {
 	var b strings.Builder
 
-	for _, r := range path {
+	for _, r := range s {
 		if unicode.IsUpper(r) {
 			b.WriteByte('!')
 			b.WriteRune(unicode.ToLower(r))
@@ -130,7 +132,7 @@ func extractNpmCopyright(nodeModulesDir, purl string) string {
 	}
 
 	name, _ := parseNpmPURL(purl)
-	if name == "" {
+	if !safeRelPath(name) {
 		return ""
 	}
 
@@ -166,12 +168,7 @@ func parseNpmPURL(purl string) (string, string) {
 	}
 
 	// URL-decode for scoped packages encoded as %40babel%2Fcore.
-	decoded, err := url.PathUnescape(rest[:idx])
-	if err != nil {
-		decoded = rest[:idx]
-	}
-
-	return decoded, rest[idx+1:]
+	return pathUnescape(rest[:idx]), pathUnescape(rest[idx+1:])
 }
 
 func npmAuthorCopyright(path string) string {
@@ -246,8 +243,8 @@ func extractPythonCopyright(sitePackagesDir, purl string) string {
 		return ""
 	}
 
-	packageName, version := rest[:idx], rest[idx+1:]
-	if packageName == "" || version == "" {
+	packageName, version := pathUnescape(rest[:idx]), pathUnescape(rest[idx+1:])
+	if !safeRelPath(packageName) || !safeRelPath(version) {
 		return ""
 	}
 
@@ -280,6 +277,31 @@ func pythonAuthorCopyright(metadata string) string {
 }
 
 // ─── Shared ──────────────────────────────────────────────────────────────────
+
+func pathUnescape(s string) string {
+	decoded, err := url.PathUnescape(s)
+	if err != nil {
+		return s
+	}
+
+	return decoded
+}
+
+// safeRelPath reports whether s can be joined onto a cache directory without
+// escaping it. Callers must decode s first, or an encoded "../" slips through.
+func safeRelPath(s string) bool {
+	if s == "" || strings.ContainsAny(s, "\x00\\") || strings.HasPrefix(s, "/") {
+		return false
+	}
+
+	for seg := range strings.SplitSeq(s, "/") {
+		if seg == "" || seg == "." || seg == ".." {
+			return false
+		}
+	}
+
+	return true
+}
 
 // firstCopyrightLine returns the first line in text that starts with "Copyright"
 // (case-insensitive), trimmed of surrounding whitespace.

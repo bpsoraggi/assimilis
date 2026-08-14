@@ -251,6 +251,65 @@ func TestNormalizeLicenseIDs_CompoundExpressionWithLicenseRefMapped(t *testing.T
 	assert.Equal(t, []string{"BSD-3-Clause", "MIT"}, ids)
 }
 
+func TestNormalizeLicenseIDs_CompoundExpressionWITH(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		expression  string
+		expectedIDs []string
+	}{
+		{
+			name:        "LLVM exception",
+			expression:  "Apache-2.0 WITH LLVM-exception",
+			expectedIDs: []string{"Apache-2.0", "LLVM-exception"},
+		},
+		{
+			name:        "Classpath exception",
+			expression:  "GPL-2.0-only WITH Classpath-exception-2.0",
+			expectedIDs: []string{"Classpath-exception-2.0", "GPL-2.0-only"},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ids := normalizeLicenseIDs([]LicenseChoice{{Expression: testCase.expression}}, nil)
+			// The exception keeps its SPDX ID: a LicenseRef-* would have no text.
+			assert.Equal(t, testCase.expectedIDs, ids)
+		})
+	}
+}
+
+func TestNormalizeLicenseIDs_BareExceptionCanonicalCasing(t *testing.T) {
+	t.Parallel()
+
+	// An exception can reach us outside a "WITH" compound, where trivy never
+	// canonicalises it. The SPDX text URL is case-sensitive, so the ID must be
+	// canonicalised here instead.
+	ids := normalizeLicenseIDs([]LicenseChoice{{Expression: "llvm-exception"}}, nil)
+	assert.Equal(t, []string{"LLVM-exception"}, ids)
+
+	ids = normalizeLicenseIDs([]LicenseChoice{{Expression: "classpath-exception-2.0"}}, nil)
+	assert.Equal(t, []string{"Classpath-exception-2.0"}, ids)
+}
+
+func TestMatchLicenseOverride_LongestPrefixWins(t *testing.T) {
+	t.Parallel()
+
+	overrides := map[string]string{
+		"pkg:golang/github.com/foo":     "MIT",
+		"pkg:golang/github.com/foo/bar": "Apache-2.0",
+	}
+
+	// Run repeatedly: a first-match-wins loop over the map would flake.
+	for range 50 {
+		id := matchLicenseOverride("pkg:golang/github.com/foo/bar/sub@v1.0.0", overrides)
+		assert.Equal(t, "Apache-2.0", id)
+	}
+}
+
 func TestNormalizeLicenseIDs_DedupeAndSort(t *testing.T) {
 	t.Parallel()
 

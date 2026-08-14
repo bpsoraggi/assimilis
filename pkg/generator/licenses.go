@@ -96,6 +96,13 @@ func resolveSingleLicense(lic string, licenseMap map[string]string) string {
 		return spdxID
 	}
 
+	// SPDX exceptions are absent from the license list but their text sits next to
+	// the license texts, so keep the ID rather than degrading it to a LicenseRef-*
+	// that has no retrievable text.
+	if exc, ok := canonicalSPDXException(lic); ok {
+		return exc
+	}
+
 	// Pass-through any LicenseRef-* the SBOM already provided.
 	if strings.HasPrefix(lic, "LicenseRef-") {
 		if mapped, ok := licenseMap[lic]; ok && mapped != "" {
@@ -111,6 +118,28 @@ func resolveSingleLicense(lic string, licenseMap map[string]string) string {
 	}
 
 	return licRef
+}
+
+// canonicalSPDXException resolves a bare exception token to its SPDX-cased ID,
+// which matters because the text is fetched from a case-sensitive URL. trivy
+// exposes no canonical lookup for exceptions, only NormalizeForSPDX rewriting
+// the right-hand side of a "WITH" — hence the synthetic expression.
+func canonicalSPDXException(lic string) (string, bool) {
+	if !expression.ValidateSPDXException(lic) {
+		return "", false
+	}
+
+	parsed, err := expression.Normalize("MIT WITH "+lic, expression.NormalizeForSPDX)
+	if err != nil {
+		return lic, true
+	}
+
+	compound, ok := parsed.(expression.CompoundExpr)
+	if !ok {
+		return lic, true
+	}
+
+	return compound.Right().String(), true
 }
 
 // matchLicenseOverride checks if a PURL matches any entry in license-corrections.json.
@@ -142,13 +171,22 @@ func matchLicenseOverride(purl string, overrides map[string]string) string {
 	// This handles sub-packages and Go major versions embedded in the path
 	// (e.g. key "pkg:golang/github.com/nrdcg/oci-go-sdk" matches
 	// "pkg:golang/github.com/nrdcg/oci-go-sdk/v65/common@v65.0.0").
+	//
+	// Several keys can match ("…/foo" and "…/foo/bar"); the longest wins. Returning
+	// on the first hit would be non-deterministic, as map order is random.
+	var bestKey, bestID string
+
 	for key, id := range overrides {
-		if clean == key || strings.HasPrefix(clean, key+"/") {
-			return id
+		if clean != key && !strings.HasPrefix(clean, key+"/") {
+			continue
+		}
+
+		if len(key) > len(bestKey) {
+			bestKey, bestID = key, id
 		}
 	}
 
-	return ""
+	return bestID
 }
 
 func firstNonEmpty(a string, b func() string) string {
