@@ -47,6 +47,36 @@ assimilis fetch \
 
 The command writes the SBOM to `third_party/sbom/<REPO_NAME>.cdx.json`, generates the normal attribution files, and updates `third_party/.last_generated_at` only after generation succeeds.
 
+### Validating third-party files before a release
+
+Assimilis can verify that the attribution files were recent when a release commit was created:
+
+```bash
+assimilis validate
+````
+
+By default, the command:
+
+* reads `third_party/.last_generated_at`;
+* validates `HEAD`;
+* allows up to `12h` between attribution generation and the release commit.
+
+To validate a specific tag or use a different maximum age:
+
+```bash
+assimilis validate \
+  --release-ref v2.1.0 \
+  --max-age 2d
+```
+
+The options can also be configured through environment variables:
+
+| Option             | Environment variable | Default                           |
+| ------------------ | -------------------- | --------------------------------- |
+| `--max-age`        | `MAX_AGE`            | `12h`                             |
+| `--release-ref`    | `RELEASE_REF`        | `HEAD`                            |
+| `--timestamp-file` | `TIMESTAMP_FILE`     | `<output-dir>/.last_generated_at` |
+
 ### Configuration
 
 ```

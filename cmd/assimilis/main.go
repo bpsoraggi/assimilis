@@ -22,6 +22,7 @@ func main() {
 		Usage: "Generate OSS attribution files",
 		Commands: []*cli.Command{
 			buildFetchCommand(&cfg),
+			buildValidateCommand(&cfg),
 			{
 				Name:   "version",
 				Usage:  "Display version information",

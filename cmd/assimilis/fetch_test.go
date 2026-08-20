@@ -51,7 +51,7 @@ func TestFetch(t *testing.T) {
 
 	timestamp, err := os.ReadFile(filepath.Join(outDir, ".last_generated_at"))
 	require.NoError(t, err)
-	assert.Equal(t, "1786104000\n", string(timestamp))
+	assert.Equal(t, "2026-08-07T12:00:00Z\n", string(timestamp))
 }
 
 func TestFetchDoesNotUpdateTimestampWhenFailure(t *testing.T) {
