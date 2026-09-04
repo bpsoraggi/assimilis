@@ -151,21 +151,21 @@ func buildModel(ctx context.Context, cfg Config, sbom SBOM, filters Filters, lic
 	byLicense, byKey, missing := buildIndex(sbom.Components, filters, licenseMap, licenseCorrections, enricher)
 
 	if len(missing) > 0 {
-	components := make([]string, 0, len(missing))
-	for _, c := range missing {
-		identifier := c.PURL
-		if identifier == "" {
-			identifier = c.Name
-			if c.Version != "" {
-				identifier += "@" + c.Version
+		components := make([]string, 0, len(missing))
+		for _, c := range missing {
+			identifier := c.PURL
+			if identifier == "" {
+				identifier = c.Name
+				if c.Version != "" {
+					identifier += "@" + c.Version
+				}
 			}
+
+			components = append(components, identifier)
 		}
 
-		components = append(components, identifier)
+		return Model{}, MissingLicensesError{Components: components}
 	}
-
-	return Model{}, MissingLicensesError{Components: components}
-}
 
 	licenses, err := buildLicenseBlocks(ctx, cfg, byLicense, spdxNames)
 	if err != nil {
