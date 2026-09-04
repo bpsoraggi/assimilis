@@ -46,7 +46,7 @@ func main() {
 		if errors.As(err, &missingErr) {
 			log.Fatal().
 				Err(missingErr).
-				Strs("missing_component_purls", missingErr.ComponentPURLs).
+				Strs("missing_components", missingErr.Components).
 				Msg("Missing license information found.")
 		}
 

@@ -35,7 +35,7 @@ func (e UnknownLicensesError) Error() string {
 // MissingLicensesError indicates that some components had no usable
 // license information after applying normalization and overrides.
 type MissingLicensesError struct {
-	ComponentPURLs []string
+	Components []string
 }
 
 func (e MissingLicensesError) Error() string {
@@ -151,13 +151,21 @@ func buildModel(ctx context.Context, cfg Config, sbom SBOM, filters Filters, lic
 	byLicense, byKey, missing := buildIndex(sbom.Components, filters, licenseMap, licenseCorrections, enricher)
 
 	if len(missing) > 0 {
-		purls := make([]string, 0, len(missing))
-		for _, c := range missing {
-			purls = append(purls, c.PURL)
+	components := make([]string, 0, len(missing))
+	for _, c := range missing {
+		identifier := c.PURL
+		if identifier == "" {
+			identifier = c.Name
+			if c.Version != "" {
+				identifier += "@" + c.Version
+			}
 		}
 
-		return Model{}, MissingLicensesError{ComponentPURLs: purls}
+		components = append(components, identifier)
 	}
+
+	return Model{}, MissingLicensesError{Components: components}
+}
 
 	licenses, err := buildLicenseBlocks(ctx, cfg, byLicense, spdxNames)
 	if err != nil {
