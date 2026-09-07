@@ -32,14 +32,32 @@ func (e UnknownLicensesError) Error() string {
 	)
 }
 
-// MissingLicensesError indicates that some components had no usable
-// license information after applying normalization and overrides.
+// MissingLicensesError indicates that some components had no usable license
+// information after applying normalization and overrides.
+// Unidentified holds those without a PURL: corrections and filters are PURL-keyed.
 type MissingLicensesError struct {
-	Components []string
+	Components   []string
+	Unidentified []string
 }
 
 func (e MissingLicensesError) Error() string {
-	return "Missing license information found. Add an updated SBOM that includes these license blocks, or map them in license-corrections.json."
+	parts := make([]string, 0, 2)
+
+	if len(e.Components) > 0 {
+		parts = append(parts, fmt.Sprintf(
+			"Missing license information for: %s. Add an updated SBOM that includes these license blocks, or map them in license-corrections.json.",
+			strings.Join(e.Components, ", "),
+		))
+	}
+
+	if len(e.Unidentified) > 0 {
+		parts = append(parts, fmt.Sprintf(
+			"Missing license information for components without a PURL: %s. license-corrections.json is keyed by PURL, so these cannot be corrected: fix the SBOM to give them a purl or a license.",
+			strings.Join(e.Unidentified, ", "),
+		))
+	}
+
+	return strings.Join(parts, " ")
 }
 
 // Run executes the generator with the given configuration.
@@ -152,19 +170,28 @@ func buildModel(ctx context.Context, cfg Config, sbom SBOM, filters Filters, lic
 
 	if len(missing) > 0 {
 		components := make([]string, 0, len(missing))
+		unidentified := make([]string, 0, len(missing))
+
 		for _, c := range missing {
-			identifier := c.PURL
-			if identifier == "" {
-				identifier = c.Name
+			if c.PURL == "" {
+				identifier := c.Name
 				if c.Version != "" {
 					identifier += "@" + c.Version
 				}
+
+				unidentified = append(unidentified, identifier)
+
+				continue
 			}
 
-			components = append(components, identifier)
+			components = append(components, c.PURL)
 		}
 
-		return Model{}, MissingLicensesError{Components: components}
+		// Map order is random.
+		sort.Strings(components)
+		sort.Strings(unidentified)
+
+		return Model{}, MissingLicensesError{Components: components, Unidentified: unidentified}
 	}
 
 	licenses, err := buildLicenseBlocks(ctx, cfg, byLicense, spdxNames)

@@ -47,6 +47,7 @@ func main() {
 			log.Fatal().
 				Err(missingErr).
 				Strs("missing_components", missingErr.Components).
+				Strs("unidentified_components", missingErr.Unidentified).
 				Msg("Missing license information found.")
 		}
 

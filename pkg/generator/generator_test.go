@@ -135,13 +135,14 @@ func TestBuildModel_FailsOnMissingLicenses(t *testing.T) {
 	sbom := SBOM{
 		Components: []Component{
 			{
+				Name:    "zeta",
+				Version: "v2",
+				PURL:    "pkg:golang/zeta@v2",
+			},
+			{
 				Name:    "go-metrics",
 				Version: "v0.0.0-20190712003943-3a3abf6ff459",
 				PURL:    "pkg:golang/github.com/rcrowley/go-metrics@v0.0.0-20190712003943-3a3abf6ff459",
-			},
-			{
-				Name:    "foo",
-				Version: "1.2.3",
 			},
 		},
 	}
@@ -151,11 +152,53 @@ func TestBuildModel_FailsOnMissingLicenses(t *testing.T) {
 
 	var missingErr MissingLicensesError
 	require.ErrorAs(t, err, &missingErr)
-	require.ElementsMatch(t, []string{
+	// Sorted: map order is random.
+	require.Equal(t, []string{
 		"pkg:golang/github.com/rcrowley/go-metrics@v0.0.0-20190712003943-3a3abf6ff459",
-		"foo@1.2.3",
+		"pkg:golang/zeta@v2",
 	}, missingErr.Components)
-	require.Equal(t, "Missing license information found. Add an updated SBOM that includes these license blocks, or map them in license-corrections.json.", missingErr.Error())
+	require.Contains(t, missingErr.Error(), "pkg:golang/zeta@v2")
+}
+
+func TestBuildModel_ReportsComponentsWithoutPURLSeparately(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	cfg := DefaultConfig()
+	cfg.OutLicensesDir = t.TempDir()
+	sbom := SBOM{
+		Components: []Component{
+			{Name: "foo", Version: "1.2.3"},
+			{Name: "bar"},
+			{Name: "gamma", Version: "v3", PURL: "pkg:golang/gamma@v3"},
+		},
+	}
+
+	_, err := buildModel(ctx, cfg, sbom, Filters{}, nil, nil, map[string]string{})
+	require.Error(t, err)
+
+	var missingErr MissingLicensesError
+	require.ErrorAs(t, err, &missingErr)
+
+	// Both kinds reported at once, not one run each.
+	require.Equal(t, []string{"pkg:golang/gamma@v3"}, missingErr.Components)
+	require.Equal(t, []string{"bar", "foo@1.2.3"}, missingErr.Unidentified)
+
+	msg := missingErr.Error()
+	require.Contains(t, msg, "license-corrections.json")
+	require.Contains(t, msg, "pkg:golang/gamma@v3")
+	require.Contains(t, msg, "without a PURL: bar, foo@1.2.3")
+}
+
+func TestMissingLicensesError_OmitsEmptySections(t *testing.T) {
+	t.Parallel()
+
+	corrected := MissingLicensesError{Components: []string{"pkg:golang/foo@v1"}}
+	require.NotContains(t, corrected.Error(), "without a PURL")
+
+	unidentified := MissingLicensesError{Unidentified: []string{"bar@1.0"}}
+	require.Contains(t, unidentified.Error(), "without a PURL: bar@1.0")
+	require.NotContains(t, unidentified.Error(), "Add an updated SBOM")
 }
 
 func TestBuildIndex_DuplicateComponentListedOncePerLicense(t *testing.T) {
